@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlatziCommerce</title>
+    <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h3>PlatziCommerce</h3>
+            <input type="text" v-model="q" placeholder="search">
+            <button  @click="cartOpen = !cartOpen" class="cart">Carro({{cart.length}})</button>
+            <div v-show="cartOpen" class="cart-content">
+                <div class="cart-content__product" v-for="(product,index) in cart" :key="product.name" :class="{'bg-gray': index & 1}">
+                    <img :src="product.images[0].image" :alt="product.name.toUpperCase()">
+                    <span>{{product.name}} - $ {{new Intl.NumberFormat("es-CO").format(product.price)}}  ({{product.quantity}})</span>
+                </div>
+                <p>Total: $ {{ new Intl.NumberFormat("es-CO").format(total)}}</p>
+            </div>
+        </header>
+        <main>
+            <product @sendtocart="addToCart($event)" v-for="product in filterProducts" :key="product.name" :product="product"></product>
+        </main>
+    </div>
+
+
+    <script src="https://unpkg.com/vue@next"></script>
+    <script>
+        const {createApp} = Vue;
+        const app = createApp({
+            data(){
+                return {
+
+                    //total: 0,
+                    cartOpen: true,
+                    cart: [
+                    ],
+                    products: [],
+                    q: ''
+                }
+            },
+            methods: {
+                addToCart(product){
+                    if (product.stock >0){
+                        const prodIndex = this.cart.findIndex(prod => prod.name === product.name);
+                        if(prodIndex >=0){
+                            this.cart[prodIndex].quantity += 1;
+                        }else{
+
+                            this.cart.push(product);
+                        }
+                        product.stock -=1;
+                    }
+                }
+            },
+            watch: {
+              /*  cart: { //Se hace de este modo ya que es un arreglo para escuchar todas sus propiedades internas.
+                    handler(cart){ // con el handler ejecutamos el watch
+                        this.total = cart.reduce((prev, curr) => {
+                            const prevPrice = prev.price || prev;
+                            const prevQuantity = prev.quantity || 0;
+                            return prevPrice + prevQuantity + (curr.price * curr.quantity);
+                        },0);
+                    },
+                    deep: true
+                }*/
+            },
+            computed: {
+                total(){
+                    return this.cart.reduce((prev, curr) => {
+                            const prevPrice = prev.price || prev;
+                            const prevQuantity = prev.quantity || 0;
+                            return prevPrice + prevQuantity + (curr.price * curr.quantity);
+                        },0);
+                },
+                filterProducts(){
+                    if(this.q != ''){
+                        return this.products.filter((product) => product.name.toLowerCase().includes(this.q.toLowerCase()));
+                    }
+
+                    return this.products;
+                }
+            },
+            created(){ // se utiliza para cargar la informacion externa, antes de que se monte.
+                fetch("https://my-json-server.typicode.com/iosamuel/demo/products")
+                    .then(res => res.json())
+                    .then(data =>{
+                        this.products = data;
+                    })
+            }
+        
+           
+        });
+
+    </script>
+    <script src="./Badge.js"></script>
+    <script src="./Product.js"></script>
+
+    <script>
+        app.mount("#app")
+    </script>
+</body>
+</html>

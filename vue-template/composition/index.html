@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlatziCommerce</title>
+    <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h3>PlatziCommerce</h3>
+            <input type="text" v-model="q" placeholder="Buscar Producto">
+            <button  @click="cartOpen = !cartOpen" class="cart">Carro({{cart.length}})</button>
+            <div v-show="cartOpen" class="cart-content">
+                <div class="cart-content__product" v-for="(product,index) in cart" :key="product.name" :class="{'bg-gray': index & 1}">
+                    <img :src="product.images[0].image" :alt="product.name.toUpperCase()">
+                    <span>{{product.name}} - $ {{new Intl.NumberFormat("es-CO").format(product.price)}} ({{product.quantity}})</span>
+                </div>
+                <p>Total: $ {{ new Intl.NumberFormat("es-CO").format(total)}}</p>
+            </div>
+        </header>
+        <main>
+            <product @sendtocart="addToCart($event)" v-for="product in filterProduct" :key="product.name" :product="product"></product>
+        </main>
+    </div>
+
+
+    <script src="https://unpkg.com/vue@next"></script>
+    <script>
+        const {createApp, ref, reactive, toRefs, watch, computed, onMounted} = Vue;
+        const app = createApp({
+
+            setup(){
+                const q = ref('');
+                const products = ref([]);
+                const cartState = reactive({
+                    cartOpen: false,
+                    cart: [],
+                    total: computed(()=>{
+                        return  cartState.cart.reduce((prev, curr) => {
+                            const prevPrice = prev.price || prev;
+                            const prevQuantity = prev.quantity || 0;
+                            return prevPrice + prevQuantity + (curr.price * curr.quantity);
+                        },0);
+                    })
+                });
+
+                /*const total = computed(()=>{
+                    return  cartState.cart.reduce((prev, curr) => {
+                        const prevPrice = prev.price || prev;
+                        const prevQuantity = prev.quantity || 0;
+                        return prevPrice + prevQuantity + (curr.price * curr.quantity);
+                    },0);
+                });*/
+
+
+                
+
+                const cartOpen = ref(false);
+                function addToCart(product){
+                if (product.stock >0){
+                        const prodIndex = cartState.cart.findIndex(prod => prod.name === product.name);
+                        if(prodIndex >=0){
+                            cartState.cart[prodIndex].quantity += 1;
+                        }else{
+                            cartState.cart.push(product);
+                        }
+                        product.stock -=1;
+                    }
+                }
+
+
+                /*watch(cartState.cart, (value,oldValue) =>{
+                    cartState.total = cartState.cart.reduce((prev, curr) => {
+                            const prevPrice = prev.price || prev;
+                            const prevQuantity = prev.quantity || 0;
+                            return prevPrice + prevQuantity + (curr.price * curr.quantity);
+                        },0);
+                });*/
+
+
+
+                // setup() === created()
+
+                fetch("https://my-json-server.typicode.com/iosamuel/demo/products")
+                    .then(res => res.json())
+                    .then(data => products.value = data);
+
+                onMounted(() => {
+                    console.log("Se monto")
+                });
+
+
+                const filterProduct = computed(()=>{
+                    if(q.value !== ''){
+                        return products.value.filter((product)=> product.name.toLowerCase().includes(q.value.toLowerCase()));
+                    }
+
+                    return products.value;
+                })
+
+                return {
+                    ...toRefs(cartState),
+                    cartOpen,
+                    products,
+                    addToCart,
+                    q,
+                    filterProduct
+                    
+                }
+
+            }
+        });
+
+       
+    </script>
+    <script src="./Badge.js"></script>
+    <script src="./Product.js"></script>
+    <script>
+         app.mount('#app');
+    </script>
+</body>
+</html>
